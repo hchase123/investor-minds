@@ -42,11 +42,11 @@ Personal Second Brain (private)        Investor Minds (public)
 
 ## Phase 0 — Foundations (1-2 hours)
 
-- [ ] Create new Supabase project `investor-minds-public` (separate from `lwioiytstoeoicnjvmkb`)
-- [ ] Mirror schema from personal Second Brain: `thoughts`, `wiki_articles`, `raw_sources` tables (see `~/Developer/wiki/CLAUDE.md` for column definitions)
-- [ ] Add `author` column (text) and `mind_slug` column (text, e.g. `buffett`, `munger`) to `wiki_articles` for filtering
-- [ ] Generate publishable API key (anon, read-only) for personal instance to use
-- [ ] Store API key in personal instance env so seeker agent can query public concepts
+- [x] Create new Supabase project `investor-minds-public` — project ID: `ywlvnlubxusqhtdevbsp`
+- [x] Mirror schema from personal Second Brain: `thoughts`, `wiki_articles`, `raw_sources` tables
+- [x] Add `author` column (text) and `mind_slug` column (text, e.g. `buffett`, `munger`) to `wiki_articles` and `thoughts`
+- [x] Generate publishable API key — stored in `.env.local` (gitignored), template in `.env.example`
+- [ ] Store API key in personal wiki's `.env.local` so seeker agent can query public concepts (`INVESTOR_MINDS_SUPABASE_URL` + `INVESTOR_MINDS_SUPABASE_ANON_KEY`)
 - [ ] Decide and register domain — recommendation: single umbrella `investorminds.io` (or similar) with `/buffett`, `/munger`, etc. paths. One domain = one DNS, one cert, one deploy
 
 ## Phase 1 — Buffett vertical slice (4-8 hours)
