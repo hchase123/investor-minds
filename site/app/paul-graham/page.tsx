@@ -37,13 +37,25 @@ export default async function PaulGrahamPage() {
           <Link href="/" className="mb-4 block text-sm text-stone-400 hover:text-stone-600">
             ← Investor Minds
           </Link>
-          <h1 className="text-3xl font-bold text-stone-900">Paul Graham</h1>
-          <p className="mt-2 text-stone-500">
-            {essays.length} essays ·{" "}
-            {concepts.length > 0
-              ? `${concepts.length} compiled concepts`
-              : "concepts compiling…"}
-          </p>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold text-stone-900">Paul Graham</h1>
+              <p className="mt-2 text-stone-500">
+                {essays.length} essays ·{" "}
+                {concepts.length > 0
+                  ? `${concepts.length} compiled concepts`
+                  : "concepts compiling…"}
+              </p>
+            </div>
+            {concepts.length > 0 && (
+              <Link
+                href="/paul-graham/graph"
+                className="shrink-0 rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-700 transition"
+              >
+                View Graph →
+              </Link>
+            )}
+          </div>
         </div>
       </header>
 
