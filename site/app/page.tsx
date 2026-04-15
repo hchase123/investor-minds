@@ -2,6 +2,14 @@ import Link from "next/link";
 
 const MINDS = [
   {
+    slug: "paul-graham",
+    name: "Paul Graham",
+    description:
+      "230 essays on startups, programming, and ideas. How to start a startup, what to work on, and how to think.",
+    years: "2001 – present",
+    status: "live",
+  },
+  {
     slug: "buffett",
     name: "Warren Buffett",
     description:
@@ -22,14 +30,6 @@ const MINDS = [
     name: "Aswath Damodaran",
     description:
       "NYU Stern lecture notes, valuation textbooks, and two decades of blog posts.",
-    years: "coming soon",
-    status: "soon",
-  },
-  {
-    slug: "marks",
-    name: "Howard Marks",
-    description:
-      "Oaktree Capital memos spanning 30+ years on risk, cycles, and second-level thinking.",
     years: "coming soon",
     status: "soon",
   },
