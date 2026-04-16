@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
-import type { WikiArticle, Thought } from "@/lib/supabase";
+import { getMOCsByMind, getFeaturedConcepts, getConceptsByTag } from "@/lib/supabase";
+import type { Thought } from "@/lib/supabase";
+import ConceptSearch from "@/components/ConceptSearch";
+import TagBrowser from "@/components/TagBrowser";
 
 export const metadata = {
   title: "Warren Buffett — Investor Minds",
@@ -17,32 +20,23 @@ async function getLetters(): Promise<Pick<Thought, "id" | "year" | "metadata" | 
   return data ?? [];
 }
 
-async function getConcepts(): Promise<Pick<WikiArticle, "id" | "slug" | "title" | "summary" | "tags" | "type">[]> {
-  const { data } = await supabase
+async function getConceptCount(): Promise<number> {
+  const { count } = await supabase
     .from("wiki_articles")
-    .select("id, slug, title, summary, tags, type")
+    .select("id", { count: "exact", head: true })
     .eq("mind_slug", "buffett")
-    .eq("status", "published")
-    .order("title");
-  return data ?? [];
-}
-
-async function getMOCs(): Promise<Pick<WikiArticle, "id" | "slug" | "title" | "summary">[]> {
-  const { data } = await supabase
-    .from("wiki_articles")
-    .select("id, slug, title, summary")
-    .eq("mind_slug", "buffett")
-    .eq("type", "moc")
-    .eq("status", "published")
-    .order("title");
-  return data ?? [];
+    .eq("type", "concept")
+    .eq("status", "published");
+  return count ?? 0;
 }
 
 export default async function BuffettPage() {
-  const [letters, concepts, mocs] = await Promise.all([
+  const [letters, conceptCount, mocs, featured, tagGroups] = await Promise.all([
     getLetters(),
-    getConcepts(),
-    getMOCs(),
+    getConceptCount(),
+    getMOCsByMind("buffett"),
+    getFeaturedConcepts("buffett", 6),
+    getConceptsByTag("buffett"),
   ]);
 
   return (
@@ -53,11 +47,24 @@ export default async function BuffettPage() {
           <Link href="/" className="mb-4 block text-sm text-stone-400 hover:text-stone-600">
             ← Investor Minds
           </Link>
-          <h1 className="text-3xl font-bold text-stone-900">Warren Buffett</h1>
-          <p className="mt-2 text-stone-500">
-            {letters.length} shareholder letters · 1977–2019 ·{" "}
-            {concepts.length > 0 ? `${concepts.length} compiled concepts` : "concepts compiling…"}
-          </p>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-stone-900">Warren Buffett</h1>
+              <p className="mt-2 text-stone-500">
+                {letters.length} shareholder letters · 1977–2019 ·{" "}
+                {conceptCount > 0 ? `${conceptCount} compiled concepts` : "concepts compiling…"}
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <ConceptSearch mindSlug="buffett" />
+              <Link
+                href="/buffett/graph"
+                className="shrink-0 rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-700 transition"
+              >
+                View Graph →
+              </Link>
+            </div>
+          </div>
         </div>
       </header>
 
@@ -68,7 +75,7 @@ export default async function BuffettPage() {
             <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-stone-400">
               Source Letters
             </h2>
-            <div className="space-y-1">
+            <div className="space-y-1 max-h-[70vh] overflow-y-auto pr-1">
               {letters.map((t) => {
                 const meta = t.metadata as Record<string, string>;
                 return (
@@ -90,8 +97,38 @@ export default async function BuffettPage() {
             </div>
           </aside>
 
-          {/* Right: Concepts & MOCs */}
+          {/* Right: Featured + MOCs + Tag Browser */}
           <main className="lg:col-span-2 space-y-10">
+            {/* Featured Concepts */}
+            {featured.length > 0 && (
+              <section>
+                <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-stone-400">
+                  Start Here
+                </h2>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {featured.map((c) => (
+                    <Link
+                      key={c.id}
+                      href={`/buffett/${c.slug}`}
+                      className="rounded-xl border border-stone-200 bg-white p-4 hover:shadow-sm transition"
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="font-medium text-stone-900">{c.title}</p>
+                        {c.tags?.length > 0 && (
+                          <span className="ml-2 shrink-0 rounded-full bg-amber-100 px-2 py-0.5 text-xs text-amber-700">
+                            {c.tags[0]}
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 text-sm text-stone-500 line-clamp-2">
+                        {c.summary}
+                      </p>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
+
             {/* MOCs */}
             {mocs.length > 0 && (
               <section>
@@ -109,48 +146,35 @@ export default async function BuffettPage() {
                       <p className="mt-1 text-xs text-stone-400 line-clamp-2">
                         {moc.summary}
                       </p>
+                      {moc.wikilinks?.length > 0 && (
+                        <p className="mt-2 text-xs text-stone-300">
+                          {moc.wikilinks.length} concepts
+                        </p>
+                      )}
                     </Link>
                   ))}
                 </div>
               </section>
             )}
 
-            {/* Concepts */}
-            {concepts.length > 0 ? (
+            {/* Browse by Tag */}
+            {Object.keys(tagGroups).length > 0 && (
               <section>
                 <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-stone-400">
-                  Concepts ({concepts.length})
+                  Browse by Tag
                 </h2>
-                <div className="divide-y divide-stone-100 rounded-xl border border-stone-200 bg-white">
-                  {concepts.map((c) => (
-                    <Link
-                      key={c.id}
-                      href={`/buffett/${c.slug}`}
-                      className="block px-5 py-4 hover:bg-stone-50 transition"
-                    >
-                      <div className="flex items-center justify-between">
-                        <p className="font-medium text-stone-900">{c.title}</p>
-                        {c.tags?.length > 0 && (
-                          <span className="ml-3 shrink-0 rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-500">
-                            {c.tags[0]}
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-0.5 text-sm text-stone-500 line-clamp-1">
-                        {c.summary}
-                      </p>
-                    </Link>
-                  ))}
-                </div>
+                <TagBrowser tagGroups={tagGroups} mindSlug="buffett" />
               </section>
-            ) : (
+            )}
+
+            {/* Empty state */}
+            {conceptCount === 0 && (
               <section className="rounded-xl border border-dashed border-stone-300 bg-white p-10 text-center">
                 <p className="text-stone-500">
                   Concepts are being compiled from the letters.
                 </p>
                 <p className="mt-1 text-sm text-stone-400">
-                  Run <code className="font-mono">/compile</code> pointed at the
-                  public Supabase instance to populate this view.
+                  Run <code className="font-mono">compile_concepts.py --mind buffett</code> to populate this view.
                 </p>
               </section>
             )}

@@ -13,9 +13,18 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://investor-minds.com"),
   title: "Investor Minds — Knowledge Graphs of Legendary Investors",
   description:
     "Explore the ideas, mental models, and principles of Warren Buffett, Charlie Munger, and more — compiled into a searchable, interlinked knowledge graph.",
+  openGraph: {
+    siteName: "Investor Minds",
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+  },
 };
 
 export default function RootLayout({

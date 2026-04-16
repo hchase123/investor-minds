@@ -106,3 +106,46 @@ export async function searchConcepts(
   if (error) throw error;
   return data ?? [];
 }
+
+export async function getFeaturedConcepts(
+  mindSlug: string,
+  limit: number = 6
+): Promise<WikiArticle[]> {
+  const { data, error } = await supabase
+    .from("wiki_articles")
+    .select("*")
+    .eq("mind_slug", mindSlug)
+    .eq("type", "concept")
+    .eq("status", "published");
+
+  if (error) throw error;
+  const articles = data ?? [];
+
+  // Sort by wikilinks array length (most connected first)
+  const sorted = [...articles].sort(
+    (a, b) => (b.wikilinks?.length ?? 0) - (a.wikilinks?.length ?? 0)
+  );
+  return sorted.slice(0, limit);
+}
+
+export async function getConceptsByTag(
+  mindSlug: string
+): Promise<Record<string, WikiArticle[]>> {
+  const { data, error } = await supabase
+    .from("wiki_articles")
+    .select("*")
+    .eq("mind_slug", mindSlug)
+    .eq("type", "concept")
+    .eq("status", "published")
+    .order("title");
+
+  if (error) throw error;
+
+  const groups: Record<string, WikiArticle[]> = {};
+  for (const article of data ?? []) {
+    const tag = article.tags?.[0] ?? "uncategorized";
+    if (!groups[tag]) groups[tag] = [];
+    groups[tag].push(article);
+  }
+  return groups;
+}

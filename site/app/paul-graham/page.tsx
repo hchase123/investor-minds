@@ -1,6 +1,8 @@
 import Link from "next/link";
+import { getMOCsByMind, getFeaturedConcepts, getConceptsByTag } from "@/lib/supabase";
 import { supabase } from "@/lib/supabase";
-import type { WikiArticle, Thought } from "@/lib/supabase";
+import ConceptSearch from "@/components/ConceptSearch";
+import TagBrowser from "@/components/TagBrowser";
 
 export const metadata = {
   title: "Paul Graham — Investor Minds",
@@ -8,122 +10,129 @@ export const metadata = {
     "Knowledge graph of Paul Graham's essays on startups, programming, and ideas.",
 };
 
-async function getEssays(): Promise<Pick<Thought, "id" | "year" | "metadata" | "content">[]> {
-  const { data } = await supabase
+async function getEssayCount(): Promise<number> {
+  const { count } = await supabase
     .from("thoughts")
-    .select("id, year, metadata, content")
-    .eq("mind_slug", "paul-graham")
-    .order("created_at");
-  return data ?? [];
+    .select("id", { count: "exact", head: true })
+    .eq("mind_slug", "paul-graham");
+  return count ?? 0;
 }
 
-async function getConcepts(): Promise<Pick<WikiArticle, "id" | "slug" | "title" | "summary" | "tags" | "type">[]> {
-  const { data } = await supabase
+async function getConceptCount(): Promise<number> {
+  const { count } = await supabase
     .from("wiki_articles")
-    .select("id, slug, title, summary, tags, type")
+    .select("id", { count: "exact", head: true })
     .eq("mind_slug", "paul-graham")
-    .eq("status", "published")
-    .order("title");
-  return data ?? [];
+    .eq("type", "concept")
+    .eq("status", "published");
+  return count ?? 0;
 }
 
 export default async function PaulGrahamPage() {
-  const [essays, concepts] = await Promise.all([getEssays(), getConcepts()]);
+  const [essayCount, conceptCount, mocs, featured, tagGroups] = await Promise.all([
+    getEssayCount(),
+    getConceptCount(),
+    getMOCsByMind("paul-graham"),
+    getFeaturedConcepts("paul-graham", 6),
+    getConceptsByTag("paul-graham"),
+  ]);
 
   return (
     <div className="min-h-screen">
+      {/* Header */}
       <header className="border-b border-stone-200 bg-white px-6 py-8">
         <div className="mx-auto max-w-5xl">
           <Link href="/" className="mb-4 block text-sm text-stone-400 hover:text-stone-600">
             ← Investor Minds
           </Link>
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div>
               <h1 className="text-3xl font-bold text-stone-900">Paul Graham</h1>
               <p className="mt-2 text-stone-500">
-                {essays.length} essays ·{" "}
-                {concepts.length > 0
-                  ? `${concepts.length} compiled concepts`
-                  : "concepts compiling…"}
+                {essayCount} essays · {conceptCount} compiled concepts
               </p>
             </div>
-            {concepts.length > 0 && (
+            <div className="flex items-center gap-3">
+              <ConceptSearch mindSlug="paul-graham" />
               <Link
                 href="/paul-graham/graph"
                 className="shrink-0 rounded-lg bg-stone-900 px-4 py-2 text-sm font-medium text-white hover:bg-stone-700 transition"
               >
                 View Graph →
               </Link>
-            )}
+            </div>
           </div>
         </div>
       </header>
 
-      <div className="mx-auto max-w-5xl px-6 py-10">
-        <div className="grid gap-10 lg:grid-cols-3">
-          {/* Essays list */}
-          <aside className="lg:col-span-1">
+      <div className="mx-auto max-w-5xl px-6 py-10 space-y-12">
+        {/* Featured Concepts */}
+        {featured.length > 0 && (
+          <section>
             <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-stone-400">
-              Source Essays ({essays.length})
+              Start Here
             </h2>
-            <div className="space-y-1 max-h-[70vh] overflow-y-auto pr-1">
-              {essays.map((t) => {
-                const meta = t.metadata as Record<string, string>;
-                return (
-                  <div
-                    key={t.id}
-                    className="rounded-lg px-3 py-2 hover:bg-stone-100"
-                  >
-                    <p className="text-sm text-stone-700 leading-snug">
-                      {meta?.title ?? t.content.slice(0, 50)}
-                    </p>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {featured.map((c) => (
+                <Link
+                  key={c.id}
+                  href={`/paul-graham/${c.slug}`}
+                  className="rounded-xl border border-stone-200 bg-white p-4 hover:shadow-sm transition"
+                >
+                  <div className="flex items-center justify-between">
+                    <p className="font-medium text-stone-900">{c.title}</p>
+                    {c.tags?.length > 0 && (
+                      <span className="ml-2 shrink-0 rounded-full bg-violet-100 px-2 py-0.5 text-xs text-violet-700">
+                        {c.tags[0]}
+                      </span>
+                    )}
                   </div>
-                );
-              })}
+                  <p className="mt-1 text-sm text-stone-500 line-clamp-2">
+                    {c.summary}
+                  </p>
+                </Link>
+              ))}
             </div>
-          </aside>
+          </section>
+        )}
 
-          {/* Concepts */}
-          <main className="lg:col-span-2">
-            {concepts.length > 0 ? (
-              <section>
-                <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-stone-400">
-                  Concepts ({concepts.length})
-                </h2>
-                <div className="divide-y divide-stone-100 rounded-xl border border-stone-200 bg-white">
-                  {concepts.map((c) => (
-                    <Link
-                      key={c.id}
-                      href={`/paul-graham/${c.slug}`}
-                      className="block px-5 py-4 hover:bg-stone-50 transition"
-                    >
-                      <div className="flex items-center justify-between">
-                        <p className="font-medium text-stone-900">{c.title}</p>
-                        {c.tags?.length > 0 && (
-                          <span className="ml-3 shrink-0 rounded-full bg-stone-100 px-2 py-0.5 text-xs text-stone-500">
-                            {c.tags[0]}
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-0.5 text-sm text-stone-500 line-clamp-1">
-                        {c.summary}
-                      </p>
-                    </Link>
-                  ))}
-                </div>
-              </section>
-            ) : (
-              <section className="rounded-xl border border-dashed border-stone-300 bg-white p-10 text-center">
-                <p className="text-stone-500">
-                  {essays.length} essays ingested.
-                </p>
-                <p className="mt-1 text-sm text-stone-400">
-                  Run the compile pipeline to extract concepts from the essays.
-                </p>
-              </section>
-            )}
-          </main>
-        </div>
+        {/* Maps of Content */}
+        {mocs.length > 0 && (
+          <section>
+            <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-stone-400">
+              Maps of Content
+            </h2>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {mocs.map((moc) => (
+                <Link
+                  key={moc.id}
+                  href={`/paul-graham/moc/${moc.slug}`}
+                  className="rounded-xl border border-stone-200 bg-white p-4 hover:shadow-sm transition"
+                >
+                  <p className="font-medium text-stone-900">{moc.title}</p>
+                  <p className="mt-1 text-xs text-stone-400 line-clamp-2">
+                    {moc.summary}
+                  </p>
+                  {moc.wikilinks?.length > 0 && (
+                    <p className="mt-2 text-xs text-stone-300">
+                      {moc.wikilinks.length} concepts
+                    </p>
+                  )}
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* Browse by Tag */}
+        {Object.keys(tagGroups).length > 0 && (
+          <section>
+            <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-stone-400">
+              Browse by Tag
+            </h2>
+            <TagBrowser tagGroups={tagGroups} mindSlug="paul-graham" />
+          </section>
+        )}
       </div>
     </div>
   );
